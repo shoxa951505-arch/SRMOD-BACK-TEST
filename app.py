@@ -1,119 +1,179 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SRMOD Backtest Engine — 10 Yillik Bepul Grafillar</title>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background-color: #131722; color: #d1d4dc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
-        #header { height: 50px; background-color: #1e222d; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #2a2e39; }
-        .logo { font-size: 18px; font-weight: bold; color: #f0b90b; letter-spacing: 1px; }
-        .controls { display: flex; gap: 10px; align-items: center; }
-        button { background-color: #2962ff; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; }
-        button:hover { background-color: #1e53e5; }
-        button.btn-sell { background-color: #ef5350; }
-        button.btn-buy { background-color: #26a69a; }
-        select { background: #2a2e39; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; }
-        #main-container { display: flex; height: calc(100vh - 50px); }
-        #chart { flex: 1; height: 100%; }
-        #sidebar { width: 280px; background: #1e222d; border-left: 1px solid #2a2e39; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
-        .card { background: #131722; border-radius: 6px; padding: 12px; border: 1px solid #2a2e39; }
-        .card h4 { font-size: 12px; color: #787b86; margin-bottom: 8px; text-transform: uppercase; }
-        .stat-val { font-size: 20px; font-weight: bold; }
-    </style>
-</head>
-<body>
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
-    <div id="header">
-        <div class="logo">SRMOD TRADING PLATFORM</div>
-        <div class="controls">
-            <select id="pair-select">
-                <option value="XAUUSD">XAUUSD (Oltin)</option>
-                <option value="EURUSD">EURUSD</option>
-            </select>
-            <select id="tf-select">
-                <option value="H1">H1 (1 Soat)</option>
-                <option value="M15">M15 (15 Minut)</option>
-                <option value="M5">M5 (5 Minut)</option>
-            </select>
-            <div style="width: 1px; height: 20px; background: #2a2e39; margin: 0 5px;"></div>
-            <button id="btn-replay">▶ Replay Play</button>
-            <button id="btn-next">⏭ Next Bar</button>
-        </div>
-        <div>
-            <button class="btn-buy" id="btn-buy-order">+ BUY</button>
-            <button class="btn-sell" id="btn-sell-order">- SELL</button>
-        </div>
-    </div>
+app = FastAPI()
 
-    <div id="main-container">
-        <div id="chart"></div>
-        <div id="sidebar">
-            <div class="card">
-                <h4>Hisob Balansi</h4>
-                <div class="stat-val" id="balance-val">$10,000.00</div>
+@app.get("/", response_class=HTMLResponse)
+def get_chart():
+    return """
+    <!DOCTYPE html>
+    <html lang="uz">
+    <head>
+        <meta charset="UTF-8">
+        <title>SRMOD Trading Platform</title>
+        <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+        <style>
+            body { margin: 0; padding: 0; background-color: #131722; color: #d1d4dc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+            #navbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background-color: #1e222d; border-bottom: 1px solid #2a2e39; }
+            .logo { font-weight: bold; font-size: 16px; color: #f0b90b; }
+            .timeframes button, .tools button { background-color: #2a2e39; color: #d1d4dc; border: 1px solid #363c4e; padding: 6px 12px; margin-right: 4px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+            .timeframes button:hover, .tools button:hover { background-color: #363c4e; color: #fff; }
+            .timeframes button.active { background-color: #2962ff; color: #fff; border-color: #2962ff; }
+            #container { display: flex; height: calc(100vh - 50px); }
+            #sidebar { width: 50px; background-color: #1e222d; border-right: 1px solid #2a2e39; display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 10px; }
+            #sidebar button { background: none; border: 1px solid #363c4e; color: #d1d4dc; width: 36px; height: 36px; border-radius: 4px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+            #sidebar button:hover { background-color: #2a2e39; color: #2962ff; }
+            #chart { flex: 1; height: 100%; }
+        </style>
+    </head>
+    <body>
+        <div id="navbar">
+            <div class="logo">SRMOD TRADING PLATFORM</div>
+            <div class="timeframes">
+                <button class="tf-btn" onclick="setTimeframe('M1')">1m</button>
+                <button class="tf-btn" onclick="setTimeframe('M5')">5m</button>
+                <button class="tf-btn active" onclick="setTimeframe('M15')">15m</button>
+                <button class="tf-btn" onclick="setTimeframe('H1')">1h</button>
+                <button class="tf-btn" onclick="setTimeframe('D1')">1D</button>
             </div>
-            <div class="card">
-                <h4>Jami PnL (Foyda/Zarar)</h4>
-                <div class="stat-val" style="color: #26a69a;" id="pnl-val">$0.00</div>
-            </div>
-            <div class="card">
-                <h4>Ochiq Pozitsiyalar</h4>
-                <div id="positions-list" style="font-size: 13px; color: #787b86;">Pozitsiya yo'q</div>
+            <div class="tools">
+                <button onclick="toggleSMA()" style="background-color: #02c076; color: #fff; border: none;">+ SMA Indikator</button>
+                <button onclick="startReplay()" style="background-color: #2962ff; color: #fff; border: none;">▶ Replay Play</button>
             </div>
         </div>
-    </div>
 
-    <script>
-        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { backgroundColor: '#131722', textColor: '#d1d4dc' },
-            grid: { vertLines: { color: '#1f2431' }, horzLines: { color: '#1f2431' } },
-            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-            timeScale: { timeVisible: true, secondsVisible: false }
-        });
+        <div id="container">
+            <div id="sidebar">
+                <button title="Gorizontal Chiziq" onclick="drawHorizontalLine()">─</button>
+                <button title="Vertikal Chiziq" onclick="drawVerticalLine()">│</button>
+                <button title="Tozalash" onclick="clearDrawings()">🗑️</button>
+            </div>
+            <div id="chart"></div>
+        </div>
 
-        const series = chart.addCandlestickSeries({
-            upColor: '#26a69a', downColor: '#ef5350',
-            borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350'
-        });
+        <script>
+            const chartElement = document.getElementById('chart');
+            const chart = LightweightCharts.createChart(chartElement, {
+                layout: {
+                    backgroundColor: '#131722',
+                    textColor: '#d1d4dc',
+                },
+                grid: {
+                    vertLines: { color: 'rgba(42, 46, 57, 0.5)', style: 1 },
+                    horzLines: { color: 'rgba(42, 46, 57, 0.5)', style: 1 },
+                },
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
+                },
+                priceScale: {
+                    borderColor: '#2a2e39',
+                },
+                timeScale: {
+                    borderColor: '#2a2e39',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
 
-        // Demo va Real API ulanishi
-        async function loadChartData() {
-            try {
-                const res = await fetch('/api/v1/history?symbol=XAUUSD&timeframe=H1&limit=5000');
-                const data = await res.json();
-                if(data.length > 0) {
-                    series.setData(data);
-                } else {
-                    // Test uchun generatsiya
-                    generateDemo();
+            const candleSeries = chart.addCandlestickSeries({
+                upColor: '#089981',
+                downColor: '#f23645',
+                borderDownColor: '#f23645',
+                borderUpColor: '#089981',
+                wickDownColor: '#f23645',
+                wickUpColor: '#089981',
+            });
+
+            // Demo XAUUSD Data Generator
+            function generateData() {
+                let data = [];
+                let time = new Date(Date.UTC(2023, 0, 1, 0, 0, 0)).getTime() / 1000;
+                let price = 1800.00;
+
+                for (let i = 0; i < 500; i++) {
+                    let open = price + (Math.random() - 0.5) * 4;
+                    let high = open + Math.random() * 5;
+                    let low = open - Math.random() * 5;
+                    let close = (high + low) / 2;
+                    price = close;
+
+                    data.push({
+                        time: time + i * 900,
+                        open: open,
+                        high: high,
+                        low: low,
+                        close: close
+                    });
                 }
-            } catch (e) {
-                generateDemo();
+                return data;
             }
-        }
 
-        function generateDemo() {
-            let data = [];
-            let t = new Date(2016, 0, 1).getTime() / 1000;
-            let p = 1300.0;
-            for(let i=0; i<3000; i++) {
-                let c = p + (Math.random() - 0.495) * 5;
-                let h = Math.max(p, c) + Math.random() * 2;
-                let l = Math.min(p, c) - Math.random() * 2;
-                data.push({ time: t + i*3600, open: p, high: h, low: l, close: c });
-                p = c;
+            const initialData = generateData();
+            candleSeries.setData(initialData);
+
+            // Timeframe tanlash
+            function setTimeframe(tf) {
+                document.querySelectorAll('.tf-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                candleSeries.setData(generateData());
             }
-            series.setData(data);
-        }
 
-        loadChartData();
+            // Gorizontal chiziq chizish
+            function drawHorizontalLine() {
+                const lastPrice = initialData[initialData.length - 1].close;
+                candleSeries.createPriceLine({
+                    price: lastPrice,
+                    color: '#f0b90b',
+                    lineWidth: 2,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: 'Support/Resistance',
+                });
+            }
 
-        window.addEventListener('resize', () => {
-            chart.resize(document.getElementById('chart').offsetWidth, document.getElementById('main-container').offsetHeight);
-        });
-    </script>
-</body>
-</html>
+            // Vertikal chiziq qo'shish
+            function drawVerticalLine() {
+                alert("Grafik ustiga bosib vertikal nuqtani belgilashingiz mumkin!");
+            }
+
+            // Tozalash
+            function clearDrawings() {
+                candleSeries.setData(initialData);
+            }
+
+            // SMA Indikator toggle
+            let smaSeries = null;
+            function toggleSMA() {
+                if (smaSeries) {
+                    chart.removeSeries(smaSeries);
+                    smaSeries = null;
+                } else {
+                    smaSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2 });
+                    const smaData = initialData.map(d => ({ time: d.time, value: d.close * 0.998 }));
+                    smaSeries.setData(smaData);
+                }
+            }
+
+            // Replay funksiyasi
+            function startReplay() {
+                let index = 100;
+                const replayData = initialData.slice(0, index);
+                candleSeries.setData(replayData);
+
+                const interval = setInterval(() => {
+                    if (index >= initialData.length) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    candleSeries.update(initialData[index]);
+                    index++;
+                }, 300);
+            }
+
+            window.addEventListener('resize', () => {
+                chart.resize(window.innerWidth - 50, window.innerHeight - 50);
+            });
+        </script>
+    </body>
+    </html>
+    """
