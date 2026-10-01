@@ -36,7 +36,7 @@ def read_root():
     <head>
         <meta charset="UTF-8">
         <title>SRMOD Backtest Engine — Trading Platform</title>
-        <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+       <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
         <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
             body { background-color: #131722; color: #d1d4dc; font-family: sans-serif; overflow: hidden; }
